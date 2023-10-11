@@ -56,7 +56,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     private var _playWhenInactive:Bool = false
     private var _ignoreSilentSwitch:String! = "inherit" // inherit, ignore, obey
     private var _mixWithOthers:String! = "inherit" // inherit, mix, duck
-    private var _resizeMode:String! = "AVLayerVideoGravityResizeAspectFill"
+    private var _resizeMode:String! = "cover"
     private var _fullscreen:Bool = false
     private var _fullscreenAutorotate:Bool = true
     private var _fullscreenOrientation:String! = "all"
@@ -429,12 +429,32 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     // MARK: - Prop setters
 
     @objc
-    func setResizeMode(_ mode: String?) {
-        if _controls {
-            _playerViewController?.videoGravity = AVLayerVideoGravity(rawValue: mode ?? "")
-        } else {
-            _playerLayer?.videoGravity = AVLayerVideoGravity(rawValue: mode ?? "")
+    func setResizeMode(_ mode: String) {
+        var resizeMode: AVLayerVideoGravity = .resizeAspect
+        
+        switch mode {
+        case "contain":
+            resizeMode = .resizeAspect
+            break
+        case "none":
+            resizeMode = .resizeAspect
+            break
+        case "cover":
+            resizeMode = .resizeAspectFill
+            break
+        case "stretch":
+            resizeMode = .resize
+            break
+        default:
+            resizeMode = .resizeAspect
         }
+        
+        if _controls {
+            _playerViewController?.videoGravity = resizeMode
+        } else {
+            _playerLayer?.videoGravity = resizeMode
+        }
+        
         _resizeMode = mode
     }
 
@@ -488,7 +508,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     @objc
     func setIgnoreSilentSwitch(_ ignoreSilentSwitch:String?) {
         _ignoreSilentSwitch = ignoreSilentSwitch
-        RCTPlayerOperations.configureAudio(ignoreSilentSwitch:_ignoreSilentSwitch, mixWithOthers:_mixWithOthers)
+        RCTPlayerOperations.configureAudio(ignoreSilentSwitch:_ignoreSilentSwitch, mixWithOthers:_mixWithOthers, audioOutput:_audioOutput)
         applyModifiers()
     }
 
@@ -510,7 +530,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
                 _player?.rate = 0.0
             }
         } else {
-            RCTPlayerOperations.configureAudio(ignoreSilentSwitch:_ignoreSilentSwitch, mixWithOthers:_mixWithOthers)
+            RCTPlayerOperations.configureAudio(ignoreSilentSwitch:_ignoreSilentSwitch, mixWithOthers:_mixWithOthers, audioOutput:_audioOutput)
 
             if _adPlaying {
 #if USE_GOOGLE_IMA
@@ -583,6 +603,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     @objc
     func setAudioOutput(_ audioOutput:String) {
         _audioOutput = audioOutput
+        RCTPlayerOperations.configureAudio(ignoreSilentSwitch:_ignoreSilentSwitch, mixWithOthers:_mixWithOthers, audioOutput:_audioOutput)
         do {
             if audioOutput == "speaker" {
                 #if os(iOS)
